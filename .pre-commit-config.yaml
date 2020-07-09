@@ -9,4 +9,6 @@ repos:
             args: ['--baseline', '.secrets.baseline']
             exclude: >
                 (?x)^(
+                Pipfile.lock |
+                notebooks/Pipfile.lock
                 )$
