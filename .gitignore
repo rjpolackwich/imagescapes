@@ -1,0 +1,9 @@
+.ipynb_checkpoints
+*.pth
+*.onnx
+.DS_STORE
+chips/
+.conductor/
+.env
+lightning_logs/
+__pycache__/

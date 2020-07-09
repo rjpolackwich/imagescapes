@@ -1,0 +1,13 @@
+name: imagesim
+description: a deep classification model to detect similarity in satellite imagery
+source: github.com/maxar-analytics/imagesim
+team: Ateam
+language:
+  - python
+
+data_classification:
+  - company_proprietary
+
+poc:
+  - name: Ateam
+    email: ateam@maxar.com
