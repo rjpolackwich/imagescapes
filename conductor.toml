@@ -23,3 +23,26 @@ forward_ports = {'8080'= '8888'}
 [commands.tensorboard]
 command = "pkill tensorboard || ~/.local/bin/tensorboard --logdir model_logs/default/"
 forward_ports = {'6006' = '6006'}
+
+[instances.chipper]
+type = "m5.xlarge"
+ami_id = "ami-019266bf7a55994a7"
+username = "ubuntu"
+volume_size = 1000
+
+[commands.chipper_provision]
+instance = "chipper"
+lazy = true
+copy_to = ["build/", "scripts/"]
+command = "bash build/chipper_provision.sh"
+
+[commands.chipper_notebook]
+instance = "chipper"
+copy_to = ["model", "build"]
+command = "jupyter lab"
+forward_ports = {'8080'= '8888'}
+
+[aws_defaults]
+subnet_id = "subnet-0d53765c3b0092d94"
+security_group_id = "sg-0a52a58f1d207f266"
+instance_profile = "imagesim-stack-dev-ConductorInstanceProfile-OBY880REBMBD"  # pragma: allowlist secret
