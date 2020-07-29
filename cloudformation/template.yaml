@@ -32,7 +32,73 @@ Resources:
         - Key: Project
           Value: od-cd
 
+  CloverleafRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS:
+                - !ImportValue cloverleaf-role-dev
+            Action:
+              - sts:AssumeRole
+      Path: /
+      Policies:
+        - PolicyName: S3Access
+          PolicyDocument:
+            Statement:
+              Effect: Allow
+              Action:
+                - s3:GetObject
+                - s3:GetObjectAcl
+                - s3:ListBucket
+                - s3:GetBucketAcl
+                - s3:PutObject
+                - s3:PutObjectAcl
+                - s3:DeleteObject
+              Resource:
+                - !Sub arn:aws:s3:::${DataBucket}
+                - !Sub arn:aws:s3:::${DataBucket}/*
+
+  ImageChipperRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS:
+                - arn:aws:iam::127337366935:role/dev-tdg-image-chipper-role
+            Action:
+              - sts:AssumeRole
+      Path: /
+      Policies:
+        - PolicyName: S3Access
+          PolicyDocument:
+            Statement:
+              Effect: Allow
+              Action:
+                - s3:GetObject
+                - s3:GetObjectAcl
+                - s3:ListBucket
+                - s3:GetBucketAcl
+                - s3:PutObject
+                - s3:PutObjectAcl
+              Resource:
+                - !Sub arn:aws:s3:::${DataBucket}
+                - !Sub arn:aws:s3:::${DataBucket}/chips/*
+
+
 Outputs:
   ImagesimBucket:
     Value: !Ref DataBucket
     Description: The name of the s3 bucket for imagesim data
+  ImagesimCloverleafRole:
+    Value: !GetAtt CloverleafRole.Arn
+    Description: The ARN of the role that gives cloverleaf access to the imagesim-storage bucket
+  ImageChipperRole:
+    Value: !GetAtt ImageChipperRole.Arn
+    Description: The ARN of the role that gives maxar-image-chipper-service write access to the imagesim-storage/chips prefix
