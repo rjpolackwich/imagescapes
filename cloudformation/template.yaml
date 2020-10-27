@@ -32,7 +32,157 @@ Resources:
         - Key: Project
           Value: od-cd
 
+  CloverleafRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS:
+                - !ImportValue cloverleaf-role-dev
+            Action:
+              - sts:AssumeRole
+      Path: /
+      Policies:
+        - PolicyName: S3Access
+          PolicyDocument:
+            Statement:
+              Effect: Allow
+              Action:
+                - s3:GetObject
+                - s3:GetObjectAcl
+                - s3:ListBucket
+                - s3:GetBucketAcl
+                - s3:PutObject
+                - s3:PutObjectAcl
+                - s3:DeleteObject
+              Resource:
+                - !Sub arn:aws:s3:::${DataBucket}
+                - !Sub arn:aws:s3:::${DataBucket}/*
+
+  ImageChipperRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS:
+                - arn:aws:iam::127337366935:role/dev-tdg-image-chipper-role
+            Action:
+              - sts:AssumeRole
+      Path: /
+      Policies:
+        - PolicyName: S3Access
+          PolicyDocument:
+            Statement:
+              Effect: Allow
+              Action:
+                - s3:GetObject
+                - s3:GetObjectAcl
+                - s3:ListBucket
+                - s3:GetBucketAcl
+                - s3:PutObject
+                - s3:PutObjectAcl
+              Resource:
+                - !Sub arn:aws:s3:::${DataBucket}
+                - !Sub arn:aws:s3:::${DataBucket}/chips/*
+
+
+# Conductor resources
+
+  ConductorSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group used for imagesim conductor resources
+      VpcId: !ImportValue VPC-dev
+      SecurityGroupIngress:
+        # maxar "vpn"
+        - CidrIp: 205.166.175.0/24
+          IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+        # westy
+        - CidrIp: 73.242.16.0/24
+          IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+        # herndon (used for vpn for some users)
+        - CidrIp: 158.184.0.0/16
+          IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+      Tags:
+        - Key: Component
+          Value: imagesim
+        - Key: Contact
+          Value: ateam@maxar.com
+        - Key: Department
+          Value: analytics
+        - Key: Environment
+          Value: dev
+        - Key: Name
+          Value: imagesim-conductor-sg
+        - Key: Project
+          Value: od-cd
+
+  ConductorInstanceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: S3Access
+          PolicyDocument:
+            Statement:
+              Effect: Allow
+              Action:
+                - s3:GetObject
+                - s3:GetObjectAcl
+                - s3:ListBucket
+                - s3:GetBucketAcl
+                - s3:PutObject
+                - s3:PutObjectAcl
+              Resource:
+                - !Sub arn:aws:s3:::${DataBucket}
+                - !Sub arn:aws:s3:::${DataBucket}/*
+      Tags:
+        - Key: Component
+          Value: imagesim
+        - Key: Contact
+          Value: ateam@maxar.com
+        - Key: Department
+          Value: analytics
+        - Key: Environment
+          Value: dev
+        - Key: Name
+          Value: imagesim-conductor-instance-role
+        - Key: Project
+          Value: od-cd
+
+  ConductorInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref ConductorInstanceRole
+
 Outputs:
   ImagesimBucket:
     Value: !Ref DataBucket
     Description: The name of the s3 bucket for imagesim data
+  ImagesimCloverleafRole:
+    Value: !GetAtt CloverleafRole.Arn
+    Description: The ARN of the role that gives cloverleaf access to the imagesim-storage bucket
+  ImageChipperRole:
+    Value: !GetAtt ImageChipperRole.Arn
+    Description: The ARN of the role that gives maxar-image-chipper-service write access to the imagesim-storage/chips prefix

@@ -7,3 +7,7 @@ verify_ssl = true
 jupyterlab = "*"
 
 [packages]
+ujson = "*"
+shapely = "*"
+mocha = {editable = true, git = "ssh://git@github.com/maxar-analytics/mocha"}
+skyway = {editable = true, git = "ssh://git@github.com/maxar-analytics/skyway", ref = "nominatim-load-from-file-object"}

@@ -1,0 +1,5 @@
+click
+rasterio
+ujson
+--extra-index-url https://pypi.geobigdata.io
+maxar-canvas-grid
