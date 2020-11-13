@@ -79,14 +79,14 @@ def write_chips(ard_path, dst_zoom=17, base_write_dir="/home/ubuntu/data/chips")
 
     # get qk children
     parent_tile = proj.tile_from_quadkey(quadkey_major)
-    child_tiles = get_children_at_zoom([parent_tile], dst_zoom)  
+    child_tiles = get_children_at_zoom([parent_tile], dst_zoom)
 
     with rasterio.open(ard_path) as src:
         for child in child_tiles:
             chip_write_path = os.path.join(zone_write_dir, f"Z{zone}-{child.quadkey}_{cat_id}.jpg")
             with rasterio.open(ard_path) as src:
                 window = rasterio.windows.from_bounds(*child.bounds, transform=src.transform)
-                with rasterio.open(chip_write_path, "w", 
+                with rasterio.open(chip_write_path, "w",
                         driver="jpeg",
                         width=window.width,
                         height=window.height,
@@ -130,7 +130,7 @@ def paths_in_chunks(pathdir, chunksize=20):
 
 
 @click.command()
-@click.option("--filename", default="nodata_index.json", help="output nodata filename") 
+@click.option("--filename", default="nodata_index.json", help="output nodata filename")
 @click.option("--chip_dir", default="/home/ubuntu/data/chips/33", help="directory with chips to test")
 @click.option("--overwrite", default=True, help="write over existing file")
 def index_nodata(filename, chip_dir, overwrite):
@@ -143,7 +143,7 @@ def index_nodata(filename, chip_dir, overwrite):
 
     chip_qa_fp = os.path.join(chip_dir, filename)
     if os.path.exists(chip_qa_fp) and not overwrite:
-        click.echo("file already exists, exiting") 
+        click.echo("file already exists, exiting")
         return
     pbar = tqdm(total=len(os.listdir(chip_dir)))
     with concurrent.futures.ProcessPoolExecutor() as executor:
@@ -154,7 +154,7 @@ def index_nodata(filename, chip_dir, overwrite):
             for chip_fn, score in zip(path_chunk, scores):
                 nodata_scorebook[score].append(chip_fn)
             pbar.update(len(scores))
-    
+
     with open(chip_qa_fp, "w") as f:
         json.dump(nodata_scorebook, f)
 
