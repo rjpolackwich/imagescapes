@@ -12,48 +12,67 @@ from loaders import SkywayDataModule
 from models import SkywayMultiLabelClassifier
 
 
-DEFAULT_BATCH_SIZE = 32
-DEFAULT_INPUT_IMAGE_SIZE = 256
-DEFAULT_LABELS_PATH = "/home/ubuntu/data/sample_sparse_encoings.csv"
-DEFAULT_IMAGES_DIR = "/home/ubuntu/data/chips"
-
-seed_everything(777)
-
-
 def save_model(model, fname):
     batch_size = model.hparams.batch_size
     sample_input = torch.randn(batch_size, 3, 256, 256, device='cuda:0')
     model.to('cuda:0')
-    torch.onnx.export(model, sample_input, fname, input_names=['input_batch'], output_names=['output_logits'])
+    torch.onnx.export(
+        model,
+        sample_input,
+        fname,
+        input_names=['input_batch'],
+        output_names=['output_logits']
+    )
 
 
-def main(args):
-    datamod = SkywayDataModule(args.labels_path,
-                               args.images_dir,
-                               args.batch_size,
-                               )
+def main(hparams):
+    seed_everything(42)
 
-    datamod.setup("train")
-    model = model_cls(hparams=args)
+    logger = TestTubeLogger(
+            name='skyway',
+            debug=False,
+            save_dir='/home/ubuntu/data/notebooks/model_logs'
+            )
 
-    # Set up logger & trainer
-    logger = TestTubeLogger(name="default", debug=False, save_dir="model_logs/")
-    trainer = Trainer.from_argparse_args(args, logger=logger)
+    mc_callback = ModelCheckpoint(
+            monitor='val_loss',
+            save_top_k=-1,
+            mode='min',
+            save_weights_only=False,
+            period=2
+            )
 
-    # train and save model
-    trainer.fit(model, datamod)
-    save_model(model, 'model.onnx')
+    lr_monitor = LearningRateMonitor(logging_interval=None)
+    gpu_monitor = GPUStatsMonitor()
+    callbacks = [mc_callback]
+
+    dvars = [vdesc[0] for vdesc in SkywayDataModule.get_init_arguments_and_types()[1:]]
+    dcfg = {vname: getattr(hparams, vname) for vname in dvars if hasattr(hparams, vname)}
+    sdm = SkywayDataModule(**dcfg)
+    sdm.setup('train')
+
+    num_classes = len(sdm.training_set.dataset.df.columns[1:].tolist())
+    mcfg = vars(hparams)
+    mcfg['num_classes'] = num_classes
+    model = SkywayMultiLabelClassifier(**mcfg)
+
+    trainer = Trainer(
+            gpus=-1,
+            max_epochs=hparams.max_epochs,
+            accelerator='ddp',
+            logger=logger,
+            callbacks=callbacks,
+            )
+
+
+    trainer.fit(model, sdm)
+
+def get_args() -> argparse.Namespace:
+    parent_parser = argparse.ArgumentParser(add_help=False)
+    parser = Trainer.add_argparse_args(parent_parser)
+    parser = SkywayMultiLabelClassifier.add_model_specific_args(parser)
+    return parser.parse_args()
 
 
 if __name__ == "__main__":
-    parser = ArgumentParser()
-    parser = Trainer.add_argparse_args(parser)
-    parser = SkywayMultiLabelClassifier.add_model_specific_args(parser)
-    parser.add_argument('--batch-size', type=int, default=32, help='Training batch size')
-    parser.add_argument('--model-name', type=str, default='model.onnx', help='output ONNX model name')
-    parser.add_argument('--chip-size', type=int, default=DEFAULT_INPUT_IMAGE_SIZE, help='resize images to this size')
-    parser.add_argument('--labels-path', type=str, default=DEFAULT_LABELS_PATH, help='full path to sparse encoded labels csv file')
-    parser.add_argument('--images-dir', type=str, default=DEFAULT_IMAGES_DIR, help='full path to directory of image chip jpgs')
-
-    args = parser.parse_args()
-    main(args)
+    main(get_args())
