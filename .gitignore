@@ -6,4 +6,6 @@ chips/
 .conductor/
 .env
 lightning_logs/
+notebooks/
+.ropeproject
 __pycache__/
